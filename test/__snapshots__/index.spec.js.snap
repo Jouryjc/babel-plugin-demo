@@ -1,0 +1,26 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`unknown plugin has-params: has-params 1`] = `
+
+spliceText('我有一只小{0}，我从来都不{1}', '毛驴', '骑')
+
+      ↓ ↓ ↓ ↓ ↓ ↓
+
+spliceTextCopy("我有一只小{0}，我从来都不{1}", {
+  0: "毛驴",
+  1: "骑",
+});
+
+
+`;
+
+exports[`unknown plugin no-params: no-params 1`] = `
+
+spliceText('有趣的灵魂')
+
+      ↓ ↓ ↓ ↓ ↓ ↓
+
+spliceTextCopy("有趣的灵魂");
+
+
+`;
