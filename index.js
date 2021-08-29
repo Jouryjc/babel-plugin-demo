@@ -55,12 +55,19 @@ export default {
     } 
   },
 
-  watch: {},
+  watch: {
+    name: {
+      deep: true,
+      hanlder (cur, prev) {
+        console.log(cur, prev)
+      }
+    }
+  },
 
   methods: {
     sayHello (aa) {
       console.log('say Hi')
-      return aaa
+      return aa
     }
   },
 

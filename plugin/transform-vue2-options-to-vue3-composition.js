@@ -6,8 +6,8 @@ module.exports = declare((api, options) => {
     const bodyContent = []
 
     const propertyMap = {
-        props: {},
-        state: {}
+        props: { },
+        state: { }
     }
 
     function assetType(property, type) {
@@ -80,8 +80,43 @@ module.exports = declare((api, options) => {
 
         bodyContent.push(...computedArr)
     }
-    
-    function genMethods (property) {
+
+    function genWatcher(property) {
+        const properties = property.value.properties
+        const watcherArr = []
+
+        properties.forEach(item => {
+            const fnName = item.key.name
+
+            let watcherAST = null
+
+            watcherAST = template.ast(`watch(() => ${fnName}, () => {})`)
+
+            // {deep: true, handler (new, old) {}, immediate: true}
+            if (types.isObjectExpression(item?.value)) {
+                const params = item.value.properties
+                const methodObject = params.filter(param => types.isObjectMethod(param))
+                watcherAST.expression.arguments[1].params = methodObject[0].params
+                watcherAST.expression.arguments[1].body = methodObject[0].body
+
+                const isDeep = params.filter(param => types.isObjectProperty(param) && param,key.name === 'deep')
+                if (isDeep?.length) {
+                    watcherAST.expression.arguments.push(template.ast(`{deep: true}`))
+                }
+            } else {
+                // 判断watcher是个函数
+               
+                watcherAST.expression.arguments[1].params = item.value.params
+                watcherAST.expression.arguments[1].body = item.value.body
+            }
+
+            watcherArr.push(watcherAST)
+        })
+
+        bodyContent.push(...watcherArr)
+    }
+
+    function genMethods(property) {
         const properties = property.value.properties
         const methodArr = []
 
@@ -89,11 +124,11 @@ module.exports = declare((api, options) => {
             const fnName = item.key.name
 
             let ast = null
-            
+
             if (types.isObjectProperty(item)) {
                 ast = template.ast(`const ${fnName} = () => {}`)
                 ast.declarations[0].init.params = item.value.params
-                ast.declarations[0].init.arguments[0].body = item.value.body
+                ast.declarations[0].init.body = item.value.body
             }
 
             methodArr.push(ast)
@@ -132,6 +167,10 @@ module.exports = declare((api, options) => {
 
                         if (assetType(property, 'computed')) {
                             genComputed(property)
+                        }
+
+                        if (assetType(property, 'watch')) {
+                            genWatcher(property)
                         }
 
                         if (assetType(property, 'methods')) {
