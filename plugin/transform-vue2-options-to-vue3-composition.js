@@ -95,11 +95,12 @@ module.exports = declare((api, options) => {
             // {deep: true, handler (new, old) {}, immediate: true}
             if (types.isObjectExpression(item?.value)) {
                 const params = item.value.properties
-                const methodObject = params.filter(param => types.isObjectMethod(param))
-                watcherAST.expression.arguments[1].params = methodObject[0].params
-                watcherAST.expression.arguments[1].body = methodObject[0].body
 
-                const isDeep = params.filter(param => types.isObjectProperty(param) && param,key.name === 'deep')
+                const methodObject = params.filter(param => types.isFunctionExpression(param.value))
+                watcherAST.expression.arguments[1].params = methodObject[0].value.params
+                watcherAST.expression.arguments[1].body = methodObject[0].value.body
+
+                const isDeep = params.filter(param => param.key.name === 'deep')
                 if (isDeep?.length) {
                     watcherAST.expression.arguments.push(template.ast(`{deep: true}`))
                 }
@@ -137,6 +138,18 @@ module.exports = declare((api, options) => {
         bodyContent.push(...methodArr)
     }
 
+    function genBeforeUnmount (property) {
+        const fnName = property.key.name
+
+        let unmountAST = null
+
+        unmountAST = template.ast(`on${fnName.replace(/^[a-z]/, (match) => match.toUpperCase())}(() => {})`)
+
+        unmountAST.expression.arguments[0].body = property.value.body
+
+        bodyContent.push(unmountAST)
+    }
+
     return {
         name: 'transform-vue2-options-to-vue3-composition-plugin',
         pre(file) {
@@ -146,11 +159,14 @@ module.exports = declare((api, options) => {
             // ObjectProperty (path) {
             //     console.log(path)
             // },
-            // ThisExpression: {
-            //     enter (path) {
-
-            //     }
-            // },
+            ThisExpression: {
+                enter (path) {
+                    const computed = path.findParent(path => {
+                        return path.isObjectProperty() && path.node?.key?.name === 'computed'
+                    })
+                    console.log(computed)
+                }
+            },
             Program: {
                 exit(path) {
                     const exportDefaultDeclaration = path.node.body.filter(item => types.isExportDefaultDeclaration(item))
@@ -176,6 +192,16 @@ module.exports = declare((api, options) => {
                         if (assetType(property, 'methods')) {
                             genMethods(property)
                         }
+
+                        if (assetType(property, 'methods')) {
+                            genMethods(property)
+                        }
+
+                        if (assetType(property, 'beforeUnmount')) {
+                            genBeforeUnmount(property)
+                        }
+
+                        // 其他生命周期钩子
                     })
 
                     path.node.body.push(...bodyContent)

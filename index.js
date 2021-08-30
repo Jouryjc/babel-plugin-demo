@@ -58,7 +58,7 @@ export default {
   watch: {
     name: {
       deep: true,
-      hanlder (cur, prev) {
+      handler (cur, prev) {
         console.log(cur, prev)
       }
     }
